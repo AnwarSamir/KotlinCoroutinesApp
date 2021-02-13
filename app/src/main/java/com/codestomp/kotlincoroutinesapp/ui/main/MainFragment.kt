@@ -8,6 +8,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
 import com.codestomp.kotlincoroutinesapp.R
 import com.codestomp.kotlincoroutinesapp.data.models.Data
@@ -27,69 +28,34 @@ class MainFragment : Fragment() {
         fun newInstance() = MainFragment()
     }
 
-    val myScope = CoroutineScope(Dispatchers.Main + CoroutineName("AnwarScope"))
 
+
+
+    lateinit var mainViewModel: MainViewModel
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
         binding = MainFragmentBinding.inflate(inflater, container, false)
+
         return binding.root
     }
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
 
-        myScope.launch {
-            binding.progressCircular.visibility=View.VISIBLE
-            val response=makeApiCall()
-            if (response.isSuccessful)
-            {
-                binding.progressCircular.visibility=View.GONE
-                buildRecipeRV(response.body()!!.data)
-            }else{
-                binding.progressCircular.visibility=View.GONE
-            }
-
-        }
-
-        binding.message.setOnClickListener {
-            Toast.makeText(requireActivity(),"this",Toast.LENGTH_LONG).show()
-        }
-
+        mainViewModel=ViewModelProvider(this).get(MainViewModel::class.java)
+        getData()
     }
 
-    suspend fun makeApiCall(): Response<RecipesResponse> {
-
-        return withContext(Dispatchers.IO) {
-            ApiInterface().getRecipes()
-        }
-
-    }
-
-
-
-
-
-    private fun loadRecipesDataCall() {
-
-
-        binding.progressCircular.visibility = View.VISIBLE
-        ApiInterface().getRecipesCall().enqueue(object : Callback<RecipesResponse> {
-            override fun onResponse(
-                call: Call<RecipesResponse>,
-                response: Response<RecipesResponse>
-            ) {
-                binding.progressCircular.visibility = View.GONE
-                buildRecipeRV(response.body()!!.data)
-            }
-
-            override fun onFailure(call: Call<RecipesResponse>, t: Throwable) {
-                binding.progressCircular.visibility = View.GONE
-            }
-
+    private fun getData() {
+        binding.progressCircular.visibility=View.VISIBLE
+        mainViewModel.recipes!!.observe(viewLifecycleOwner, Observer {recipesData->
+            binding.progressCircular.visibility=View.GONE
+            buildRecipeRV(recipesData.data)
         })
     }
+
 
     private fun buildRecipeRV(data: ArrayList<Data>) {
         val recipesAdapter = RecipesAdapter(data, object : RecipesAdapter.OnItemCLicked {
@@ -99,19 +65,6 @@ class MainFragment : Fragment() {
         })
 
         binding.rvRecipes.adapter = recipesAdapter
-    }
-
-
-    fun doHeavyTask() {
-        for (i in 1..100000000000000) {
-            val x = i * 22323
-            val r = i * 22323
-            val c = i * 22323
-            val z = i * 22323
-            val t = i * 22323
-
-
-        }
     }
 
     override fun onDestroy() {
